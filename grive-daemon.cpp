@@ -121,6 +121,30 @@ static bool get_event (int fd, const char * target, Watch& watch)
     if (pevent->len) {
       if ((strcmp (pevent->name, ".grive") != 0) && (strcmp (pevent->name, ".grive_state") != 0)) {
         syslog (LOG_INFO, "Noticed %s.", action);
+        while (true) {
+          // Replace dangerous char
+          char *char_ptr = strchr(action, '"');
+          if (!char_ptr) {
+            break;
+          }
+          *char_ptr = '_';
+        }
+        while (true) {
+          // Replace dangerous char
+          char *char_ptr = strchr(action, '$');
+          if (!char_ptr) {
+            break;
+          }
+          *char_ptr = '_';
+        }
+        while (true) {
+          // Replace dangerous char
+          char *char_ptr = strchr(action, '\'');
+          if (!char_ptr) {
+            break;
+          }
+          *char_ptr = '_';
+        }
         strcat(system_message, "notify-send \"Grive Daemon: \" \"");
         strcat(system_message, action);
         strcat(system_message, "\"");
