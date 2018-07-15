@@ -27,6 +27,7 @@ watch.o: watch.cpp watch.h
 install:
 	sudo cp grive-daemon /usr/local/bin/
 	sudo cp start-grive-daemon.sh /etc/profile.d/
+	sudo chmod +x /etc/profile.d/start-grive-daemon.sh
 
 uninstall:
 	sudo rm -f /usr/local/bin/grive-daemon
