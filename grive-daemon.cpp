@@ -58,6 +58,8 @@ static bool get_event (int fd, const char * target, Watch& watch)
   while (i < len) {
     struct inotify_event *pevent = (struct inotify_event *)&buff[i];
     char action[81+FILENAME_MAX] = {0};
+    char system_message[200+FILENAME_MAX] = {0};
+    bool relevant_change = false;
 
     if (pevent->len) 
        strcpy (action, pevent->name);
@@ -65,7 +67,7 @@ static bool get_event (int fd, const char * target, Watch& watch)
        strcpy (action, target);
     
     if (pevent->mask & IN_ATTRIB) 
-       strcat(action, "'s metadata changed");
+       strcat(action, "'s metadata changed but this is ignored");
     if (pevent->mask & IN_CREATE)
     {
         current_dir = watch.get(pevent->wd);
@@ -79,6 +81,7 @@ static bool get_event (int fd, const char * target, Watch& watch)
           //printf("New file %s/%s created.\n", current_dir.c_str(), pevent->name);
         }
         strcat(action, " was created in a watched directory");
+        relevant_change = true;
     }
     if (pevent->mask & IN_DELETE)
     {
@@ -91,23 +94,40 @@ static bool get_event (int fd, const char * target, Watch& watch)
             //printf( "File %s/%s deleted.\n", current_dir.c_str(), pevent->name );
         }
         strcat(action, " was deleted in a watched directory");
+        relevant_change = true;
     }
-    if (pevent->mask & IN_DELETE_SELF) 
+    if (pevent->mask & IN_DELETE_SELF) {
        strcat(action, ", the watched file/directory, was itself deleted");
-    if (pevent->mask & IN_MODIFY) 
+       relevant_change = true;
+    }
+    if (pevent->mask & IN_MODIFY) {
        strcat(action, " was modified");
-    if (pevent->mask & IN_MOVE_SELF) 
+       relevant_change = true;
+    }
+    if (pevent->mask & IN_MOVE_SELF) {
        strcat(action, ", the watched file/directory, was itself moved");
-    if (pevent->mask & IN_MOVED_FROM) 
+       relevant_change = true;
+    }
+    if (pevent->mask & IN_MOVED_FROM) {
        strcat(action, " was moved out of a watched directory");
-    if (pevent->mask & IN_MOVED_TO) 
+       relevant_change = true;
+    }
+    if (pevent->mask & IN_MOVED_TO) {
        strcat(action, " was moved into a watched directory");
+       relevant_change = true;
+    }
     
     // Ignore hidden grive files.
     if (pevent->len) {
       if ((strcmp (pevent->name, ".grive") != 0) && (strcmp (pevent->name, ".grive_state") != 0)) {
         syslog (LOG_INFO, "Noticed %s.", action);
-        sync_required = true;
+        strcat(system_message, "notify-send \"Grive Daemon: \" \"");
+        strcat(system_message, action);
+        strcat(system_message, "\"");
+        system (system_message);
+        if (relevant_change) {
+          sync_required = true;
+        }
       }
     }
     
